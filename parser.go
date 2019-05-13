@@ -9,11 +9,11 @@ import (
 var (
 	// ErrMissingLabel is an error to describe label is missing (ex. 'my_value')
 	ErrMissingLabel = xerrors.New("missing label")
-	// ErrMissingLabel is an error to describe label is empty (ex. ':my_value')
+	// ErrEmptyLabel is an error to describe label is empty (ex. ':my_value')
 	ErrEmptyLabel = xerrors.New("empty label")
-	// ErrMissingLabel is an error to describe label contains invalid char (ex. 'my\tlabel:my_value')
+	// ErrInvalidLabel is an error to describe label contains invalid char (ex. 'my\tlabel:my_value')
 	ErrInvalidLabel = xerrors.New("invalid label")
-	// ErrMissingLabel is an error to describe value contains invalid char (ex. 'my_label:my_value\n')
+	// ErrInvalidValue is an error to describe value contains invalid char (ex. 'my_label:my_value\n')
 	ErrInvalidValue = xerrors.New("invalid value")
 )
 
