@@ -24,4 +24,18 @@ About LTSV: http://ltsv.org/
 go get github.com/Wing924/ltsv
 ```
 
-## Examples
+## Benchmarks
+
+```bash
+$ cd bench && go test -bench . -benchmem
+goos: darwin
+goarch: amd64
+pkg: github.com/Wing924/ltsv/bench
+Benchmark_line_Wing924_ltsv-4          	 2000000	       588 ns/op	     224 B/op	      17 allocs/op
+Benchmark_line_Wing924_ltsv_strict-4   	 2000000	       800 ns/op	     224 B/op	      17 allocs/op
+Benchmark_line_Songmu_goltsv-4         	  300000	      3906 ns/op	    1841 B/op	      32 allocs/op
+Benchmark_line_ymotongpoo_goltsv-4     	 1000000	      2324 ns/op	    5793 B/op	      17 allocs/op
+Benchmark_line_najeira_ltsv-4          	  300000	      4933 ns/op	    5529 B/op	      26 allocs/op
+PASS
+ok  	github.com/Wing924/ltsv/bench	9.315s
+```
