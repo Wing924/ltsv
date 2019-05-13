@@ -1,80 +1,88 @@
 package ltsv
 
-func ParseLine(line []byte, m map[string]string) (map[string]string, error) {
+import (
+	"bytes"
+
+	"golang.org/x/xerrors"
+)
+
+var (
+	ErrMissingLabel = xerrors.New("missing label")
+	ErrEmptyLabel   = xerrors.New("empty label")
+	ErrInvalidLabel = xerrors.New("invalid label")
+	ErrInvalidValue = xerrors.New("invalid value")
+)
+
+func ParseLine(line []byte, strictMode bool, m map[string]string) (map[string]string, error) {
 	if m == nil {
 		m = map[string]string{}
 	}
-	line = skipTabs(line)
+	oriLine := line
 	for len(line) > 0 {
-		rest, label, value, err := parseField(line)
-		line = skipTabs(rest)
-		if err != nil {
-			return nil, err
+		idx := bytes.IndexByte(line, '\t')
+		var field []byte
+		if idx == -1 {
+			field = line
+			line = nil
+		} else {
+			field = line[0:idx]
+			line = line[idx+1:]
 		}
-		m[label] = value
+		if len(field) == 0 {
+			continue
+		}
+		label, value, err := parseField(field, strictMode)
+		if err != nil {
+			return nil, xerrors.Errorf("bad line syntax %q: %w", string(oriLine), err)
+		}
+
+		m[string(label)] = string(value)
 	}
 	return m, nil
 }
 
-func skipTabs(line []byte) []byte {
-	for len(line) > 0 {
-		switch line[0] {
-		case '\t':
-			line = line[1:]
-		case '\r', '\n':
-			return nil
-		default:
-			return line
+func parseField(field []byte, strictMode bool) (label []byte, value []byte, err error) {
+	idx := bytes.IndexByte(field, ':')
+	if idx > 0 {
+		label = field[0:idx]
+		value = field[idx+1:]
+		if strictMode {
+			if err = validateLabel(label); err != nil {
+				return nil, nil, xerrors.Errorf("bad field label syntax %q: %w", string(field), err)
+			}
+			if err = validateValue(value); err != nil {
+				return nil, nil, xerrors.Errorf("bad field value syntax %q: %w", string(field), err)
+			}
+		}
+	} else {
+		switch idx {
+		case -1:
+			err = xerrors.Errorf("bad field syntax %q: %w", string(field), ErrMissingLabel)
+		case 0:
+			err = xerrors.Errorf("bad field syntax %q: %w", string(field), ErrEmptyLabel)
+		}
+	}
+	return
+}
+
+func validateLabel(label []byte) error {
+	for _, c := range label {
+		if !isValidKey(c) {
+			return xerrors.Errorf("invalid char %q used in label %q: %w", c, string(label), ErrInvalidLabel)
 		}
 	}
 	return nil
 }
 
-func parseField(line []byte) (rest []byte, label string, value string, err error) {
-	line, label, err = parseLabel(line)
-	if err != nil {
-		return
+func validateValue(value []byte) error {
+	for _, c := range value {
+		if !isValidValue(c) {
+			return xerrors.Errorf("invalid char %q used in value %q: %w", c, string(value), ErrInvalidValue)
+		}
 	}
-	rest, value, err = parseValue(line[1:])
-	return
+	return nil
 }
 
-func parseLabel(line []byte) (rest []byte, label string, err error) {
-	for i, c := range line {
-		if isValidKey(c) {
-			continue
-		}
-
-		if c != ':' {
-			err = ErrInvalidLabel
-			return
-		}
-		if i > 0 {
-			label = string(line[0:i])
-			rest = line[i:]
-			return
-		}
-		err = ErrMissingLabel
-		return
-	}
-	err = ErrMissingLabel
-	return
-}
-
-func parseValue(line []byte) (rest []byte, value string, err error) {
-	for i, c := range line {
-		if isValidValue(c) {
-			continue
-		}
-		value = string(line[0:i])
-		rest = line[i:]
-		return
-	}
-	value = string(line)
-	return
-}
-
-//
 func isValidKey(ch byte) bool { // [0-9A-Za-z_.-]
 	switch ch {
 	case '_', '.', '-',
