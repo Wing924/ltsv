@@ -7,15 +7,22 @@ import (
 )
 
 var (
+	// ErrMissingLabel is an error to describe label is missing (ex. 'my_value')
 	ErrMissingLabel = xerrors.New("missing label")
-	ErrEmptyLabel   = xerrors.New("empty label")
+	// ErrMissingLabel is an error to describe label is empty (ex. ':my_value')
+	ErrEmptyLabel = xerrors.New("empty label")
+	// ErrMissingLabel is an error to describe label contains invalid char (ex. 'my\tlabel:my_value')
 	ErrInvalidLabel = xerrors.New("invalid label")
+	// ErrMissingLabel is an error to describe value contains invalid char (ex. 'my_label:my_value\n')
 	ErrInvalidValue = xerrors.New("invalid value")
 )
 
-func ParseLine(line []byte, strictMode bool, m map[string]string) (map[string]string, error) {
-	if m == nil {
-		m = map[string]string{}
+// ParseLine parse LTSV-encoded data and return the result.
+// If strictMode is false, it just split fields with '\t' and split label and value with ':' without checking if format is valid.
+// For reducing memory allocation, you can pass a map to record to reuse the given map.
+func ParseLine(line []byte, strictMode bool, record map[string]string) (map[string]string, error) {
+	if record == nil {
+		record = map[string]string{}
 	}
 	oriLine := line
 	for len(line) > 0 {
@@ -36,9 +43,9 @@ func ParseLine(line []byte, strictMode bool, m map[string]string) (map[string]st
 			return nil, xerrors.Errorf("bad line syntax %q: %w", string(oriLine), err)
 		}
 
-		m[string(label)] = string(value)
+		record[string(label)] = string(value)
 	}
-	return m, nil
+	return record, nil
 }
 
 func parseField(field []byte, strictMode bool) (label []byte, value []byte, err error) {

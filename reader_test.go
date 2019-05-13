@@ -13,7 +13,7 @@ func TestReader_Read(t *testing.T) {
 	f := newTestData()
 	defer f.Close()
 
-	r := NewReader(f)
+	r := NewReader(f, true)
 
 	m, err := r.Read(nil)
 	assert.NoError(t, err)
@@ -35,7 +35,7 @@ func TestReader_ReadAll(t *testing.T) {
 	f := newTestData()
 	defer f.Close()
 
-	r := NewReader(f)
+	r := NewReader(f, true)
 
 	expected := []map[string]string{
 		expectRecord(0),

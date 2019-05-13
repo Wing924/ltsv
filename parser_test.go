@@ -1,6 +1,7 @@
 package ltsv
 
 import (
+	"fmt"
 	"testing"
 
 	"golang.org/x/xerrors"
@@ -38,6 +39,15 @@ func TestParseLine(t *testing.T) {
 			assert.EqualValues(t, test.want, m)
 		})
 	}
+}
+
+func ExampleParseLine() {
+	line := []byte("host:127.0.0.1\tident:-\tuser:frank\ttime:[10/Oct/2000:13:55:36 -0700]\treq:GET /apache_pb.gif HTTP/1.0\tstatus:200\tsize:2326\treferer:http://www.example.com/start.html\tua:Mozilla/4.08 [en] (Win98; I ;Nav)")
+	record, err := ParseLine(line, true, nil)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("%#v", record)
 }
 
 func TestParseField(t *testing.T) {
