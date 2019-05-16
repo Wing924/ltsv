@@ -27,13 +27,13 @@ var value = map[string]string{
 
 // Wing924/ltsv
 func Test_line_Wing924_ltsv(t *testing.T) {
-	m, err := Wing924.ParseLine(line, false, nil)
+	m, err := Wing924.ParseLineAsMap(line, false, nil)
 	assert.NoError(t, err)
 	assert.EqualValues(t, value, m)
 }
 
 func Test_line_Wing924_ltsv_strict(t *testing.T) {
-	m, err := Wing924.ParseLine(line, true, nil)
+	m, err := Wing924.ParseLineAsMap(line, true, nil)
 	assert.NoError(t, err)
 	assert.EqualValues(t, value, m)
 }
@@ -41,14 +41,14 @@ func Test_line_Wing924_ltsv_strict(t *testing.T) {
 func Benchmark_line_Wing924_ltsv(b *testing.B) {
 	m := make(map[string]string, 17)
 	for i := 0; i < b.N; i++ {
-		Wing924.ParseLine(line, false, m)
+		Wing924.ParseLineAsMap(line, false, m)
 	}
 }
 
 func Benchmark_line_Wing924_ltsv_strict(b *testing.B) {
 	m := make(map[string]string, 17)
 	for i := 0; i < b.N; i++ {
-		Wing924.ParseLine(line, true, m)
+		Wing924.ParseLineAsMap(line, true, m)
 	}
 }
 
