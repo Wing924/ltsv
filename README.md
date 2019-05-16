@@ -6,7 +6,7 @@
 [![codecov](https://codecov.io/gh/Wing924/ltsv/branch/master/graph/badge.svg)](https://codecov.io/gh/Wing924/ltsv)
 [![GoDoc](https://godoc.org/github.com/Wing924/ltsv?status.svg)](https://godoc.org/github.com/Wing924/ltsv)
 
-High performance LTSV (Labeled Tab Separeted Value) reader for Go.
+High performance LTSV (Labeled Tab Separeted Value) parser for Go.
 
 About LTSV: http://ltsv.org/
 
@@ -22,6 +22,26 @@ About LTSV: http://ltsv.org/
 
 ```bash
 go get github.com/Wing924/ltsv
+```
+
+## Examples
+
+```go
+package main
+
+import (
+	"fmt"
+	"github.com/Wing924/ltsv"
+)
+
+func main() {
+	line := []byte("foo:123\tbar:456")
+    record, err := ltsv.ParseLineAsMap(line, true, nil)
+    if err != nil {
+        panic(err)
+    }
+    fmt.Printf("%#v", record) // map[string]string{"foo":"123", "bar":"456"}
+}
 ```
 
 ## Benchmarks
