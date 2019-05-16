@@ -46,16 +46,25 @@ func main() {
 
 ## Benchmarks
 
-```bash
-$ cd bench && go test -bench . -benchmem
+Benchmark against 
+* [Songmu/go-ltsv](https://github.com/Songmu/go-ltsv): 635% faster
+* [ymotongpoo/goltsv](https://github.com/ymotongpoo/goltsv): 365% faster
+* [najeira/ltsv](https://github.com/najeira/ltsv): 782% faster
+
+Source code: [bench/line_test.go](https://github.com/Wing924/ltsv/blob/master/bench/line_test.go).
+
+### Result
+
+```
+$ go test -bench . -benchmem
 goos: darwin
 goarch: amd64
 pkg: github.com/Wing924/ltsv/bench
-Benchmark_line_Wing924_ltsv-4          	 2000000	       588 ns/op	     224 B/op	      17 allocs/op
-Benchmark_line_Wing924_ltsv_strict-4   	 2000000	       800 ns/op	     224 B/op	      17 allocs/op
-Benchmark_line_Songmu_goltsv-4         	  300000	      3906 ns/op	    1841 B/op	      32 allocs/op
-Benchmark_line_ymotongpoo_goltsv-4     	 1000000	      2324 ns/op	    5793 B/op	      17 allocs/op
-Benchmark_line_najeira_ltsv-4          	  300000	      4933 ns/op	    5529 B/op	      26 allocs/op
+Benchmark_line_Wing924_ltsv-4          	 2000000	       626 ns/op	     224 B/op	      17 allocs/op
+Benchmark_line_Wing924_ltsv_strict-4   	 2000000	       788 ns/op	     224 B/op	      17 allocs/op
+Benchmark_line_Songmu_goltsv-4         	  300000	      3975 ns/op	    1841 B/op	      32 allocs/op
+Benchmark_line_ymotongpoo_goltsv-4     	  500000	      2286 ns/op	    5793 B/op	      17 allocs/op
+Benchmark_line_najeira_ltsv-4          	  300000	      4896 ns/op	    5529 B/op	      26 allocs/op
 PASS
-ok  	github.com/Wing924/ltsv/bench	9.315s
+ok  	github.com/Wing924/ltsv/bench	8.245s
 ```
