@@ -27,28 +27,34 @@ var value = map[string]string{
 
 // Wing924/ltsv
 func Test_line_Wing924_ltsv(t *testing.T) {
-	m, err := Wing924.ParseLineAsMap(line, false, nil)
+	parser := Wing924.DefaultParser
+	parser.StrictMode = false
+	m, err := parser.ParseLineAsMap(line, nil)
 	assert.NoError(t, err)
 	assert.EqualValues(t, value, m)
 }
 
 func Test_line_Wing924_ltsv_strict(t *testing.T) {
-	m, err := Wing924.ParseLineAsMap(line, true, nil)
+	parser := Wing924.DefaultParser
+	m, err := parser.ParseLineAsMap(line, nil)
 	assert.NoError(t, err)
 	assert.EqualValues(t, value, m)
 }
 
 func Benchmark_line_Wing924_ltsv(b *testing.B) {
+	parser := Wing924.DefaultParser
+	parser.StrictMode = false
 	m := make(map[string]string, 17)
 	for i := 0; i < b.N; i++ {
-		Wing924.ParseLineAsMap(line, false, m)
+		parser.ParseLineAsMap(line, m)
 	}
 }
 
 func Benchmark_line_Wing924_ltsv_strict(b *testing.B) {
+	parser := Wing924.DefaultParser
 	m := make(map[string]string, 17)
 	for i := 0; i < b.N; i++ {
-		Wing924.ParseLineAsMap(line, true, m)
+		parser.ParseLineAsMap(line, m)
 	}
 }
 
