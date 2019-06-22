@@ -10,6 +10,21 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestParseLine(t *testing.T) {
+	line := []byte("foo:123\tbar:456")
+	ParseLine(line, func(label []byte, value []byte) {
+		val := string(value)
+		switch string(label) {
+		case "foo":
+			assert.Equal(t, "123", val)
+		case "bar":
+			assert.Equal(t, "456", val)
+		default:
+			t.Errorf("unknown label: %s", string(label))
+		}
+	})
+}
+
 func TestParseLineAsMap(t *testing.T) {
 	tests := []struct {
 		name string
