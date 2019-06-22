@@ -12,7 +12,29 @@ type (
 		Label string
 		Value string
 	}
+
+	// Parser is for parsing LTSV-encoded format.
+	Parser struct {
+		// FieldDelimiter is the delimiter of fields. It defaults to '\t'.
+		FieldDelimiter byte
+		// ValueDelimiter is the delimiter of label-value pairs. It defaults to ':'.
+		ValueDelimiter byte
+		// StrictMode is a flag to check if labels and values are valid.
+		// If strictMode is false,
+		// the parser just split fields with `FieldDelimiter`
+		// and split label and value with `ValueDelimiter` without checking if they are valid.
+		// The valid label is `/[0-9A-Za-z_.-]+/`.
+		// The valid value is `/[^\b\t\r\n]*/`.
+		StrictMode bool
+	}
 )
+
+// DefaultParser is the default parser
+var DefaultParser = Parser{
+	FieldDelimiter: '\t',
+	ValueDelimiter: ':',
+	StrictMode:     true,
+}
 
 var (
 	// ErrMissingLabel is an error to describe label is missing (ex. 'my_value')
@@ -25,73 +47,14 @@ var (
 	ErrInvalidValue = xerrors.New("invalid value")
 )
 
-// ParseLineAsMap parse one line of LTSV-encoded data and return the map[string]string.
-// If strictMode is false, it just split fields with '\t' and split label and value with ':' without checking if format is valid.
-// For reducing memory allocation, you can pass a map to record to reuse the given map.
-func ParseLineAsMap(line []byte, strictMode bool, record map[string]string) (map[string]string, error) {
-	if record == nil {
-		record = map[string]string{}
-	}
-	err := ParseLine(line, strictMode, func(label []byte, value []byte) {
-		record[string(label)] = string(value)
-	})
-	if err != nil {
-		return nil, xerrors.Errorf(": %w", err)
-	}
-	return record, nil
-}
-
-// ParseLineAsSlice parse one line of LTSV-encoded data and return the []Field.
-// If strictMode is false, it just split fields with '\t' and split label and value with ':' without checking if format is valid.
-// For reducing memory allocation, you can pass a slice to record to reuse the given slice.
-func ParseLineAsSlice(line []byte, strictMode bool, record []Field) ([]Field, error) {
-	record = record[:0]
-	err := ParseLine(line, strictMode, func(label []byte, value []byte) {
-		record = append(record, Field{string(label), string(value)})
-	})
-	if err != nil {
-		return nil, xerrors.Errorf(": %w", err)
-	}
-	return record, nil
-}
-
-// ParseLine parse one line of LTSV-encoded data and call callback.
-// If strictMode is false, it just split fields with '\t' and split label and value with ':' without checking if format is valid.
-// The callback function will be called for each field.
-func ParseLine(line []byte, strictMode bool, callback func(label []byte, value []byte)) error {
-	oriLine := line
-	for len(line) > 0 {
-		idx := bytes.IndexByte(line, '\t')
-		var field []byte
-		if idx == -1 {
-			field = line
-			line = nil
-		} else {
-			field = line[0:idx]
-			line = line[idx+1:]
-		}
-		if len(field) == 0 {
-			continue
-		}
-		label, value, err := ParseField(field, strictMode)
-		if err != nil {
-			return xerrors.Errorf("bad line syntax %q: %w", string(oriLine), err)
-		}
-
-		callback(label, value)
-	}
-	return nil
-}
-
 // ParseField parse LTSV-encoded field and return the label and value.
-// If strictMode is false, it just split fields with '\t' and split label and value with ':' without checking if format is valid.
-// The result share same memory with inputted field
-func ParseField(field []byte, strictMode bool) (label []byte, value []byte, err error) {
-	idx := bytes.IndexByte(field, ':')
+// The result share same memory with inputted field.
+func (p Parser) ParseField(field []byte) (label []byte, value []byte, err error) {
+	idx := bytes.IndexByte(field, p.ValueDelimiter)
 	if idx > 0 {
 		label = field[0:idx]
 		value = field[idx+1:]
-		if strictMode {
+		if p.StrictMode {
 			if err = validateLabel(label); err != nil {
 				return nil, nil, xerrors.Errorf("bad field label syntax %q: %w", string(field), err)
 			}
@@ -108,6 +71,61 @@ func ParseField(field []byte, strictMode bool) (label []byte, value []byte, err 
 		}
 	}
 	return
+}
+
+// ParseLine parse one line of LTSV-encoded data and call callback.
+// The callback function will be called for each field.
+func (p Parser) ParseLine(line []byte, callback func(label []byte, value []byte)) error {
+	oriLine := line
+	for len(line) > 0 {
+		idx := bytes.IndexByte(line, p.FieldDelimiter)
+		var field []byte
+		if idx == -1 {
+			field = line
+			line = nil
+		} else {
+			field = line[0:idx]
+			line = line[idx+1:]
+		}
+		if len(field) == 0 {
+			continue
+		}
+		label, value, err := p.ParseField(field)
+		if err != nil {
+			return xerrors.Errorf("bad line syntax %q: %w", string(oriLine), err)
+		}
+
+		callback(label, value)
+	}
+	return nil
+}
+
+// ParseLineAsMap parse one line of LTSV-encoded data and return the map[string]string.
+// For reducing memory allocation, you can pass a map to record to reuse the given map.
+func (p Parser) ParseLineAsMap(line []byte, record map[string]string) (map[string]string, error) {
+	if record == nil {
+		record = map[string]string{}
+	}
+	err := p.ParseLine(line, func(label []byte, value []byte) {
+		record[string(label)] = string(value)
+	})
+	if err != nil {
+		return nil, xerrors.Errorf(": %w", err)
+	}
+	return record, nil
+}
+
+// ParseLineAsSlice parse one line of LTSV-encoded data and return the []Field.
+// For reducing memory allocation, you can pass a slice to record to reuse the given slice.
+func (p Parser) ParseLineAsSlice(line []byte, record []Field) ([]Field, error) {
+	record = record[:0]
+	err := p.ParseLine(line, func(label []byte, value []byte) {
+		record = append(record, Field{string(label), string(value)})
+	})
+	if err != nil {
+		return nil, xerrors.Errorf(": %w", err)
+	}
+	return record, nil
 }
 
 func validateLabel(label []byte) error {

@@ -36,7 +36,7 @@ import (
 
 func main() {
 	line := []byte("foo:123\tbar:456")
-    record, err := ltsv.ParseLineAsMap(line, true, nil)
+    record, err := ltsv.ParseLineAsMap(line, nil)
     if err != nil {
         panic(err)
     }
