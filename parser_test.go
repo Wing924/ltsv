@@ -10,6 +10,21 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestParseLine(t *testing.T) {
+	line := []byte("foo:123\tbar:456")
+	ParseLine(line, func(label []byte, value []byte) {
+		val := string(value)
+		switch string(label) {
+		case "foo":
+			assert.Equal(t, "123", val)
+		case "bar":
+			assert.Equal(t, "456", val)
+		default:
+			t.Errorf("unknown label: %s", string(label))
+		}
+	})
+}
+
 func TestParseLineAsMap(t *testing.T) {
 	tests := []struct {
 		name string
@@ -29,7 +44,7 @@ func TestParseLineAsMap(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			m, err := ParseLineAsMap([]byte(test.line), true, nil)
+			m, err := ParseLineAsMap([]byte(test.line), nil)
 			if test.err != nil {
 				assert.Error(t, err)
 				assert.True(t, xerrors.Is(err, test.err))
@@ -43,7 +58,7 @@ func TestParseLineAsMap(t *testing.T) {
 
 func ExampleParseLineAsMap() {
 	line := []byte("foo:123\tbar:456")
-	record, err := ParseLineAsMap(line, true, nil)
+	record, err := ParseLineAsMap(line, nil)
 	if err != nil {
 		panic(err)
 	}
@@ -69,7 +84,7 @@ func TestParseLineAsSlice(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			m, err := ParseLineAsSlice([]byte(test.line), true, nil)
+			m, err := ParseLineAsSlice([]byte(test.line), nil)
 			if test.err != nil {
 				assert.Error(t, err)
 				assert.True(t, xerrors.Is(err, test.err))
@@ -83,7 +98,7 @@ func TestParseLineAsSlice(t *testing.T) {
 
 func ExampleParseLineAsSlice() {
 	line := []byte("foo:123\tbar:456")
-	record, err := ParseLineAsSlice(line, true, nil)
+	record, err := ParseLineAsSlice(line, nil)
 	if err != nil {
 		panic(err)
 	}
@@ -108,7 +123,7 @@ func TestParseField(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			label, value, err := ParseField([]byte(test.line), true)
+			label, value, err := ParseField([]byte(test.line))
 			if test.err != nil {
 				assert.Error(t, err)
 				assert.Truef(t, xerrors.Is(err, test.err), "%+v", err)
@@ -122,9 +137,11 @@ func TestParseField(t *testing.T) {
 }
 
 func BenchmarkParseLine(b *testing.B) {
+	parser := DefaultParser
+	parser.StrictMode = false
 	line := []byte("host:127.0.0.1\tident:-\tuser:frank\ttime:[10/Oct/2000:13:55:36 -0700]\treq:GET /apache_pb.gif HTTP/1.0\tstatus:200\tsize:2326\treferer:http://www.example.com/start.html\tua:Mozilla/4.08 [en] (Win98; I ;Nav)")
 	m := make(map[string]string, 11)
 	for i := 0; i < b.N; i++ {
-		ParseLineAsMap(line, false, m)
+		parser.ParseLineAsMap(line, m)
 	}
 }
