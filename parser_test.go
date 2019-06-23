@@ -12,7 +12,7 @@ import (
 
 func TestParseLine(t *testing.T) {
 	line := []byte("foo:123\tbar:456")
-	ParseLine(line, func(label []byte, value []byte) {
+	ParseLine(line, func(label []byte, value []byte) error {
 		val := string(value)
 		switch string(label) {
 		case "foo":
@@ -22,7 +22,32 @@ func TestParseLine(t *testing.T) {
 		default:
 			t.Errorf("unknown label: %s", string(label))
 		}
+		return nil
 	})
+}
+
+func TestParseLine_break(t *testing.T) {
+	line := []byte("foo:123\tbar:456")
+	counter := 0
+	err := ParseLine(line, func(label []byte, value []byte) error {
+		counter++
+		return Break
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, 1, counter)
+}
+
+func TestParseLine_error(t *testing.T) {
+	line := []byte("foo:123\tbar:456")
+	counter := 0
+	customErr := xerrors.New("custom error")
+	err := ParseLine(line, func(label []byte, value []byte) error {
+		counter++
+		return customErr
+	})
+	assert.Error(t, err)
+	assert.True(t, xerrors.Is(err, customErr))
+	assert.Equal(t, 1, counter)
 }
 
 func TestParseLineAsMap(t *testing.T) {
@@ -136,12 +161,23 @@ func TestParseField(t *testing.T) {
 	}
 }
 
-func BenchmarkParseLine(b *testing.B) {
+func BenchmarkParseLineAsMap(b *testing.B) {
 	parser := DefaultParser
 	parser.StrictMode = false
 	line := []byte("host:127.0.0.1\tident:-\tuser:frank\ttime:[10/Oct/2000:13:55:36 -0700]\treq:GET /apache_pb.gif HTTP/1.0\tstatus:200\tsize:2326\treferer:http://www.example.com/start.html\tua:Mozilla/4.08 [en] (Win98; I ;Nav)")
 	m := make(map[string]string, 11)
 	for i := 0; i < b.N; i++ {
 		parser.ParseLineAsMap(line, m)
+	}
+}
+
+func BenchmarkParseLine(b *testing.B) {
+	parser := DefaultParser
+	parser.StrictMode = false
+	line := []byte("host:127.0.0.1\tident:-\tuser:frank\ttime:[10/Oct/2000:13:55:36 -0700]\treq:GET /apache_pb.gif HTTP/1.0\tstatus:200\tsize:2326\treferer:http://www.example.com/start.html\tua:Mozilla/4.08 [en] (Win98; I ;Nav)")
+	for i := 0; i < b.N; i++ {
+		parser.ParseLine(line, func(label []byte, value []byte) error {
+			return nil
+		})
 	}
 }

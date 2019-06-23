@@ -8,7 +8,7 @@ func ParseField(field []byte) (label []byte, value []byte, err error) {
 
 // ParseLine parse one line of LTSV-encoded data and call callback.
 // The callback function will be called for each field.
-func ParseLine(line []byte, callback func(label []byte, value []byte)) error {
+func ParseLine(line []byte, callback func(label []byte, value []byte) error) error {
 	return DefaultParser.ParseLine(line, callback)
 }
 
