@@ -26,6 +26,30 @@ func TestParseLine(t *testing.T) {
 	})
 }
 
+func TestParseLine_break(t *testing.T) {
+	line := []byte("foo:123\tbar:456")
+	counter := 0
+	err := ParseLine(line, func(label []byte, value []byte) error {
+		counter++
+		return Break
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, 1, counter)
+}
+
+func TestParseLine_error(t *testing.T) {
+	line := []byte("foo:123\tbar:456")
+	counter := 0
+	customErr := xerrors.New("custom error")
+	err := ParseLine(line, func(label []byte, value []byte) error {
+		counter++
+		return customErr
+	})
+	assert.Error(t, err)
+	assert.True(t, xerrors.Is(err, customErr))
+	assert.Equal(t, 1, counter)
+}
+
 func TestParseLineAsMap(t *testing.T) {
 	tests := []struct {
 		name string
