@@ -45,6 +45,8 @@ var (
 	ErrInvalidLabel = xerrors.New("invalid label")
 	// ErrInvalidValue is an error to describe value contains invalid char (ex. 'my_label:my_value\n')
 	ErrInvalidValue = xerrors.New("invalid value")
+	// Break is an error for break loop
+	Break = xerrors.New("break")
 )
 
 // ParseField parse LTSV-encoded field and return the label and value.
@@ -75,7 +77,7 @@ func (p Parser) ParseField(field []byte) (label []byte, value []byte, err error)
 
 // ParseLine parse one line of LTSV-encoded data and call callback.
 // The callback function will be called for each field.
-func (p Parser) ParseLine(line []byte, callback func(label []byte, value []byte)) error {
+func (p Parser) ParseLine(line []byte, callback func(label []byte, value []byte) error) error {
 	oriLine := line
 	for len(line) > 0 {
 		idx := bytes.IndexByte(line, p.FieldDelimiter)
@@ -95,7 +97,12 @@ func (p Parser) ParseLine(line []byte, callback func(label []byte, value []byte)
 			return xerrors.Errorf("bad line syntax %q: %w", string(oriLine), err)
 		}
 
-		callback(label, value)
+		if err = callback(label, value); err != nil {
+			if err == Break {
+				break
+			}
+			return xerrors.Errorf("ParseLine callback error: %w", err)
+		}
 	}
 	return nil
 }
@@ -106,8 +113,9 @@ func (p Parser) ParseLineAsMap(line []byte, record map[string]string) (map[strin
 	if record == nil {
 		record = map[string]string{}
 	}
-	err := p.ParseLine(line, func(label []byte, value []byte) {
+	err := p.ParseLine(line, func(label []byte, value []byte) error {
 		record[string(label)] = string(value)
+		return nil
 	})
 	if err != nil {
 		return nil, xerrors.Errorf(": %w", err)
@@ -119,8 +127,9 @@ func (p Parser) ParseLineAsMap(line []byte, record map[string]string) (map[strin
 // For reducing memory allocation, you can pass a slice to record to reuse the given slice.
 func (p Parser) ParseLineAsSlice(line []byte, record []Field) ([]Field, error) {
 	record = record[:0]
-	err := p.ParseLine(line, func(label []byte, value []byte) {
+	err := p.ParseLine(line, func(label []byte, value []byte) error {
 		record = append(record, Field{string(label), string(value)})
+		return nil
 	})
 	if err != nil {
 		return nil, xerrors.Errorf(": %w", err)
