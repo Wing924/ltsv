@@ -1,10 +1,9 @@
 package ltsv
 
 import (
+	"errors"
 	"fmt"
 	"testing"
-
-	"golang.org/x/xerrors"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -40,13 +39,13 @@ func TestParseLine_break(t *testing.T) {
 func TestParseLine_error(t *testing.T) {
 	line := []byte("foo:123\tbar:456")
 	counter := 0
-	customErr := xerrors.New("custom error")
+	customErr := errors.New("custom error")
 	err := ParseLine(line, func(label []byte, value []byte) error {
 		counter++
 		return customErr
 	})
 	assert.Error(t, err)
-	assert.True(t, xerrors.Is(err, customErr))
+	assert.True(t, errors.Is(err, customErr))
 	assert.Equal(t, 1, counter)
 }
 
@@ -72,7 +71,7 @@ func TestParseLineAsMap(t *testing.T) {
 			m, err := ParseLineAsMap([]byte(test.line), nil)
 			if test.err != nil {
 				assert.Error(t, err)
-				assert.True(t, xerrors.Is(err, test.err))
+				assert.ErrorIs(t, err, test.err)
 				return
 			}
 			require.NoError(t, err)
@@ -112,7 +111,7 @@ func TestParseLineAsSlice(t *testing.T) {
 			m, err := ParseLineAsSlice([]byte(test.line), nil)
 			if test.err != nil {
 				assert.Error(t, err)
-				assert.True(t, xerrors.Is(err, test.err))
+				assert.ErrorIs(t, err, test.err)
 				return
 			}
 			require.NoError(t, err)
@@ -151,7 +150,7 @@ func TestParseField(t *testing.T) {
 			label, value, err := ParseField([]byte(test.line))
 			if test.err != nil {
 				assert.Error(t, err)
-				assert.Truef(t, xerrors.Is(err, test.err), "%+v", err)
+				assert.ErrorIs(t, err, test.err)
 				return
 			}
 			require.NoError(t, err)
