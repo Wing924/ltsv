@@ -2,8 +2,8 @@ package ltsv
 
 import (
 	"bytes"
-
-	"golang.org/x/xerrors"
+	"errors"
+	"fmt"
 )
 
 type (
@@ -38,15 +38,15 @@ var DefaultParser = Parser{
 
 var (
 	// ErrMissingLabel is an error to describe label is missing (ex. 'my_value')
-	ErrMissingLabel = xerrors.New("missing label")
+	ErrMissingLabel = errors.New("missing label")
 	// ErrEmptyLabel is an error to describe label is empty (ex. ':my_value')
-	ErrEmptyLabel = xerrors.New("empty label")
+	ErrEmptyLabel = errors.New("empty label")
 	// ErrInvalidLabel is an error to describe label contains invalid char (ex. 'my\tlabel:my_value')
-	ErrInvalidLabel = xerrors.New("invalid label")
+	ErrInvalidLabel = errors.New("invalid label")
 	// ErrInvalidValue is an error to describe value contains invalid char (ex. 'my_label:my_value\n')
-	ErrInvalidValue = xerrors.New("invalid value")
+	ErrInvalidValue = errors.New("invalid value")
 	// Break is an error for break loop
-	Break = xerrors.New("break")
+	Break = errors.New("break")
 )
 
 // ParseField parse LTSV-encoded field and return the label and value.
@@ -58,18 +58,18 @@ func (p Parser) ParseField(field []byte) (label []byte, value []byte, err error)
 		value = field[idx+1:]
 		if p.StrictMode {
 			if err = validateLabel(label); err != nil {
-				return nil, nil, xerrors.Errorf("bad field label syntax %q: %w", string(field), err)
+				return nil, nil, fmt.Errorf("bad field label syntax %q: %w", string(field), err)
 			}
 			if err = validateValue(value); err != nil {
-				return nil, nil, xerrors.Errorf("bad field value syntax %q: %w", string(field), err)
+				return nil, nil, fmt.Errorf("bad field value syntax %q: %w", string(field), err)
 			}
 		}
 	} else {
 		switch idx {
 		case -1:
-			err = xerrors.Errorf("bad field syntax %q: %w", string(field), ErrMissingLabel)
+			err = fmt.Errorf("bad field syntax %q: %w", string(field), ErrMissingLabel)
 		case 0:
-			err = xerrors.Errorf("bad field syntax %q: %w", string(field), ErrEmptyLabel)
+			err = fmt.Errorf("bad field syntax %q: %w", string(field), ErrEmptyLabel)
 		}
 	}
 	return
@@ -94,14 +94,14 @@ func (p Parser) ParseLine(line []byte, callback func(label []byte, value []byte)
 		}
 		label, value, err := p.ParseField(field)
 		if err != nil {
-			return xerrors.Errorf("bad line syntax %q: %w", string(oriLine), err)
+			return fmt.Errorf("bad line syntax %q: %w", string(oriLine), err)
 		}
 
 		if err = callback(label, value); err != nil {
-			if err == Break {
+			if errors.Is(err, Break) {
 				break
 			}
-			return xerrors.Errorf("ParseLine callback error: %w", err)
+			return fmt.Errorf("ParseLine callback error: %w", err)
 		}
 	}
 	return nil
@@ -118,7 +118,7 @@ func (p Parser) ParseLineAsMap(line []byte, record map[string]string) (map[strin
 		return nil
 	})
 	if err != nil {
-		return nil, xerrors.Errorf(": %w", err)
+		return nil, fmt.Errorf(": %w", err)
 	}
 	return record, nil
 }
@@ -132,7 +132,7 @@ func (p Parser) ParseLineAsSlice(line []byte, record []Field) ([]Field, error) {
 		return nil
 	})
 	if err != nil {
-		return nil, xerrors.Errorf(": %w", err)
+		return nil, fmt.Errorf(": %w", err)
 	}
 	return record, nil
 }
@@ -140,7 +140,7 @@ func (p Parser) ParseLineAsSlice(line []byte, record []Field) ([]Field, error) {
 func validateLabel(label []byte) error {
 	for _, c := range label {
 		if !isValidKey(c) {
-			return xerrors.Errorf("invalid char %q used in label %q: %w", c, string(label), ErrInvalidLabel)
+			return fmt.Errorf("invalid char %q used in label %q: %w", c, string(label), ErrInvalidLabel)
 		}
 	}
 	return nil
@@ -149,7 +149,7 @@ func validateLabel(label []byte) error {
 func validateValue(value []byte) error {
 	for _, c := range value {
 		if !isValidValue(c) {
-			return xerrors.Errorf("invalid char %q used in value %q: %w", c, string(value), ErrInvalidValue)
+			return fmt.Errorf("invalid char %q used in value %q: %w", c, string(value), ErrInvalidValue)
 		}
 	}
 	return nil
